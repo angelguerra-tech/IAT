@@ -1,0 +1,7 @@
+streamlit
+openpyxl
+streamlit-authenticator
+pandas
+python-docx
+Pillow
+psutil
