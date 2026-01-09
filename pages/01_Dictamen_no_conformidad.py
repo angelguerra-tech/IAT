@@ -161,7 +161,7 @@ if st.button("Generar dictamen", type="primary"):
         "{Observaciones}": observaciones,
     }
 
-    doc = Document(PLANTILLA_DICTAMEN)
+    doc = Document(str(PLANTILLA_DICTAMEN))
     _replace_everywhere(doc, replacements)
 
     buff = io.BytesIO()
