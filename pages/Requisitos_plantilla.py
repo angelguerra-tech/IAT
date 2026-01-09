@@ -447,6 +447,6 @@ if st.session_state.get("reporte_descargado", False):
     if st.session_state.get("reporte_tiene_no_cumple", False):
         st.sidebar.info("Se detectaron incumplimientos. Puedes emitir el dictamen.")
         if st.sidebar.button("Generar dictamen", type="secondary"):
-            st.switch_page("Dictamen_no_conformidad.py")
+            st.switch_page("pages/01_Dictamen_no_conformidad.py")
     else:
         st.sidebar.success("Todos los requisitos cumplen. (Dictamen no habilitado por ahora).")
