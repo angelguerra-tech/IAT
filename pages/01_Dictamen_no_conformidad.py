@@ -5,6 +5,11 @@ from datetime import date
 from docx import Document
 import unicodedata
 import re
+from pathlib import Path
+import os
+
+BASE_DIR = Path(__file__).resolve().parents[1]  # sube de /pages a la raíz del proyecto
+PLANTILLA_DICTAMEN_PATH = BASE_DIR / "Dictamen de no conformidad.docx"
 
 RUTA_EXCEL = "Matriz.xlsx"
 PLANTILLA_DICTAMEN = "Dictamen de no conformidad.docx"
