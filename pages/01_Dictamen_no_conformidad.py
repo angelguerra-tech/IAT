@@ -40,7 +40,7 @@ def _load_catalogos():
 
     # Acepta varias formas de encabezado
     col_titulo = pick("titulo", "título")
-    col_nombre = pick("nombre analista", "analista", "nombre")
+    col_nombre = pick("nombre del analista", "nombre analista", "analista", "nombre")
     col_cargo  = pick("cargo", "puesto")
 
     if not col_titulo or not col_nombre or not col_cargo:
