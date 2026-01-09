@@ -8,6 +8,18 @@ from PIL import Image
 if 'observaciones_por_normativa' not in st.session_state:
     st.session_state['observaciones_por_normativa'] = {}
 
+# --- NUEVO: estados para flujo reporte/dictamen (mínimamente invasivo) ---
+if "reporte_docx_bytes" not in st.session_state:
+    st.session_state["reporte_docx_bytes"] = None
+if "reporte_generado" not in st.session_state:
+    st.session_state["reporte_generado"] = False
+if "reporte_descargado" not in st.session_state:
+    st.session_state["reporte_descargado"] = False
+if "reporte_tiene_no_cumple" not in st.session_state:
+    st.session_state["reporte_tiene_no_cumple"] = False
+if "dictamen_observaciones" not in st.session_state:
+    st.session_state["dictamen_observaciones"] = ""
+
 # Funciones para manejar observaciones
 def agregar_observacion(norma, requisito, cumplimiento, observacion):
     if norma not in st.session_state['observaciones_por_normativa']:
@@ -28,123 +40,86 @@ def cambiar_normativa(norma):
 
 
 def clear_input_states():
-    # Lista para almacenar las claves que se van a eliminar
     keys_to_delete = []
-
-    # Buscar claves que deben ser eliminadas
     for key in st.session_state.keys():
         if key.startswith('indice_') or key.startswith('input_'):
             keys_to_delete.append(key)
-    
-    # Eliminar también 'observaciones_por_normativa' si es necesario
     if 'observaciones_por_normativa' in st.session_state:
         keys_to_delete.append('observaciones_por_normativa')
-    
-    # Eliminar las claves seleccionadas
     for key in keys_to_delete:
         del st.session_state[key]
 
 def clear_specific_keys():
-    # Identificar claves específicas que contienen los valores del textarea
     text_area_keys = [key for key in st.session_state.keys() if key.startswith('input_') or key.startswith('obs_')]
-    # Reiniciar estas claves
     for key in text_area_keys:
         st.session_state[key] = ""
 
-    # Reiniciar también los índices de los selectboxes si es necesario
     selectbox_keys = [key for key in st.session_state.keys() if key.startswith('indice_')]
     for key in selectbox_keys:
-        st.session_state[key] = 0  # o el índice default que prefieras
-####################################################################
+        st.session_state[key] = 0
 
 
-#Configura que cubra todo el ancho de la pagina
 st.set_page_config(layout="wide")
 
 
 st.markdown("""
 <style>
-[data-testid="stSidebarContent"] {
-    background: #F4F7FD;
-}
-button.st-emotion-cache-1mcbg9u e16zdaao0 {
-    background-color: #FFFFFF !important; /* Fondo blanco */
-}
-div.st-emotion-cache-1jicfl2 {
-    background-color: white; /* Establece el fondo a blanco */
-}
+[data-testid="stSidebarContent"] { background: #F4F7FD; }
+button.st-emotion-cache-1mcbg9u e16zdaao0 { background-color: #FFFFFF !important; }
+div.st-emotion-cache-1jicfl2 { background-color: white; }
 [data-testid="stBaseButton-secondary"] {
     background: #436ab2 !important;
-    color: white !important;  /* Asegura que el color del texto sea blanco */
-    border: 2px solid #436ab2 !important;  /* Asegura el color del borde */
+    color: white !important;
+    border: 2px solid #436ab2 !important;
 }
-[data-testid="stMarkdownContainer"] { 
-    display: block;
-    width: 100%;
-    text-align: left;
-}
+[data-testid="stMarkdownContainer"] { display: block; width: 100%; text-align: left; }
 button[data-testid="stBaseButton-secondary"]:hover {
     background-color: #FFFFFF !important;
-    color: #436ab2 !important;  /* Asegura que el texto cambie a azul oscuro */
-    border-color: #436ab2 !important;  /* Asegura que el borde cambie a azul oscuro */
+    color: #436ab2 !important;
+    border-color: #436ab2 !important;
 }
-div[data-testid="stButton"] > button {
-    display: block;
-    margin: 0 auto;  /* Centra el botón horizontalmente */
-}
-div[data-testid="stDownloadButton"] > button {
-    display: block;
-    margin: 0 auto;  /* Centra el botón horizontalmente */
-}             
+div[data-testid="stButton"] > button { display: block; margin: 0 auto; }
+div[data-testid="stDownloadButton"] > button { display: block; margin: 0 auto; }             
 [data-testid="stBaseButton-primary"] {
-    background-color: #81d4fa; /* Celeste claro */
-    color: black; /* Texto blanco para contraste */
-    border: 2px solid #81d4fa; /* Borde del mismo color */
+    background-color: #81d4fa;
+    color: black;
+    border: 2px solid #81d4fa;
     text-align: center;
 }
 [data-testid="bstBaseButton-primary"]:hover {
-    background-color: #4fc3f7; /* Celeste más oscuro para el hover */
+    background-color: #4fc3f7;
     color: black;
-    border-color: #29b6f6; /* Borde un poco más oscuro en hover */
+    border-color: #29b6f6;
     text-align: center;
 }
-[data-testid="stLinkButton"] { 
-    width: 100%; /* Asegura que tome todo el ancho disponible */
-    text-align: right; /* Alinea el contenido a la derecha */
-}
+[data-testid="stLinkButton"] { width: 100%; text-align: right; }
 [data-testid="stLinkButton"]>a {
-    background-color: #4dd0e1; /* Un turquesa claro */
-    color: white; /* Texto blanco */
-    border: 2px solid #4dd0e1; /* Borde del mismo color */
-    padding: 8px 16px; /* Añade algo de relleno */
-    border-radius: 5px; /* Bordes redondeados */
+    background-color: #4dd0e1;
+    color: white;
+    border: 2px solid #4dd0e1;
+    padding: 8px 16px;
+    border-radius: 5px;
 }
 [data-testid="stLinkButton"]>a:hover {
-    background-color: #26c6da; /* Turquesa más oscuro para el hover */
-    border-color: #00acc1; /* Borde más oscuro en hover */
+    background-color: #26c6da;
+    border-color: #00acc1;
 }
 </style>
 """, unsafe_allow_html=True)
 
-#Valores para almacenar información del reporte
 observaciones_no_cumple = []
 
 
-#@st.cache_data
 def load_data(ruta_excel):
-# Cargar el archivo Excel y devolverlo
     return pd.read_excel(ruta_excel, sheet_name=None, keep_default_na=False, na_values='')
 
-# Cargar los datos solo una vez y almacenarlos en caché
 ruta_excel = 'Matriz.xlsx'
 matriz = load_data(ruta_excel)
 
-# Dataframes
 categorias_df = matriz['Vinculación de CA']
 reglamentos_df = matriz['Reglamentos Aplicables']
-requisitos_df=matriz['REQUISITOS']
+requisitos_df = matriz['REQUISITOS']
 
-# Inicialización del estado al cargar la página
 if 'observaciones_por_normativa' not in st.session_state:
     st.session_state['observaciones_por_normativa'] = {}
     
@@ -152,32 +127,27 @@ if 'current_norma' not in st.session_state:
     st.session_state['current_norma'] = None
 
 
-# Cargar la imagen del logo
 logo = Image.open("logo_3.png")
+st.sidebar.image(logo, width=150, use_container_width=True)
 
-#st.sidebar.image(logo, width=150,use_column_width=True)
-st.sidebar.image(logo, width=150,use_container_width=True)
+space1, col1, col2, space = st.sidebar.columns([4,2,2,4], vertical_alignment="center")
 
-
-space1, col1, col2, space = st.sidebar.columns([4,2,2,4],vertical_alignment="center")  # Ajusta las proporciones según sea necesario
-# Usar la segunda columna para poner el logo a la derecha
 with space1:
-    if st.button("❌",type='primary', help="Cerrar Sesión"):
-        st.session_state['salida']=True
+    if st.button("❌", type='primary', help="Cerrar Sesión"):
+        st.session_state['salida'] = True
         st.switch_page("evaluacion_alimentos.py")
 with col1:
-    if st.button("🢀",type='primary'):
+    if st.button("🢀", type='primary'):
         clear_specific_keys()
         st.switch_page("pages/CATEGORIAS.py")
 with col2:
-    if st.button("🏚️",type='primary'):
+    if st.button("🏚️", type='primary'):
         clear_specific_keys()
         st.switch_page("evaluacion_alimentos.py")
 
 
 st.sidebar.title("Regulación aplicable")
 
-# Se selecciona categoría
 categoria_seleccionada = st.session_state.get('categoria_seleccionada', None)
 
 if 'categoria_seleccionada' not in st.session_state:
@@ -186,15 +156,13 @@ if 'categoria_seleccionada' not in st.session_state:
 if 'last_categoria_seleccionada' not in st.session_state:
     st.session_state['last_categoria_seleccionada'] = None
 
-# Crear columnas
-col1, col2,col3,col4 = st.columns([0.5,0.5,8, 2],vertical_alignment="center")  # Ajusta las proporciones según sea necesario
+col1, col2, col3, col4 = st.columns([0.5,0.5,8, 2], vertical_alignment="center")
 
 with col3: 
     if 'categoria_seleccionada' in st.session_state:
-        # Utilizar la categoría seleccionada del session_state
         categoria_seleccionada = st.session_state['categoria_seleccionada']
-        subgrupo=st.session_state['Subgrupo_rtca']
-        Descrip_sub_rtca=st.session_state['Descriptor_subcategoria_rtca']
+        subgrupo = st.session_state['Subgrupo_rtca']
+        Descrip_sub_rtca = st.session_state['Descriptor_subcategoria_rtca']
 
         st.markdown(f"""
         <div style="text-align: center; font-size: 25px;">
@@ -223,15 +191,12 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-#Revisa la categoria seleccionada con la anterior
 if st.session_state['categoria_seleccionada'] != st.session_state['last_categoria_seleccionada']:
-    st.session_state['current_norma'] = None  # Resetear current_norma
-    st.session_state['last_categoria_seleccionada'] = st.session_state['categoria_seleccionada']  # Actualizar la última categoría seleccionada
+    st.session_state['current_norma'] = None
+    st.session_state['last_categoria_seleccionada'] = st.session_state['categoria_seleccionada']
 
 
-# Mostrar la descripción de la categoría seleccionada y los botones de normas aplicables
 if categoria_seleccionada:
-    # Filtrar las normas aplicables a la categoría seleccionada
     normas_aplicables = categorias_df[categorias_df['Subcategoria'] == categoria_seleccionada].iloc[0, 8:].dropna().tolist()
 
 
@@ -240,27 +205,25 @@ if 'current_norma' not in st.session_state:
 
 
 for norma in normas_aplicables:
-    if st.sidebar.button(norma,use_container_width=True):
+    if st.sidebar.button(norma, use_container_width=True):
         cambiar_normativa(norma)
 
 st.markdown("---")
 
-# Asegurándose de que las definiciones iniciales de session_state están en su lugar
 if 'show_selectbox' not in st.session_state:
     st.session_state.show_selectbox = False
 
 if 'selected_fortification' not in st.session_state:
     st.session_state.selected_fortification = None
 
-cumplimiento_guardado=None
-observacion_guardada=None
+cumplimiento_guardado = None
+observacion_guardada = None
 
-# Desplegar los requisitos de la normativa seleccionada
+
 if 'current_norma' in st.session_state and st.session_state['current_norma']:
 
-    norma = st.session_state['current_norma'].strip() #Quitando espacios en blanco para que puedan coincidir con el listado
+    norma = st.session_state['current_norma'].strip()
 
-    # Crear una tabla editable para los requisitos
     st.markdown(f"""
     <div style="text-align: center; font-size: 22px; color:#005662;">
         <strong><em>{norma}</em></strong>
@@ -270,37 +233,30 @@ if 'current_norma' in st.session_state and st.session_state['current_norma']:
     reglamentos_df['REGLAMENTO'] = reglamentos_df['REGLAMENTO'].str.strip()
     enlace = reglamentos_df.loc[reglamentos_df['REGLAMENTO'] == norma, 'ENLACE'].iloc[0]
 
+    if norma != "Observaciones Generales":
+        st.link_button("VER REGLAMENTO", enlace)
 
-    if norma !="Observaciones Generales":
-        st.link_button("VER REGLAMENTO",enlace)
+    st.write("")
+    st.write("")
 
-    st.write(f"")
-    st.write(f"")
+    requisitos_df['Normas'] = requisitos_df['Normas'].str.strip()
 
-    # Eliminar duplicados basados en 'Normas' para obtener una lista de todas las normativas únicas
-    requisitos_df['Normas'] =  requisitos_df['Normas'].str.strip()
-
-
-    #Para submenú en RTS 67.06.01:13
-    norma_forti="RTS 67.06.01:13 Fortificación de alimentos. Especificaciones (azúcar, sal, harina de maíz nixtamalizado y pastas alimenticias)"
-    if norma==norma_forti:
+    norma_forti = "RTS 67.06.01:13 Fortificación de alimentos. Especificaciones (azúcar, sal, harina de maíz nixtamalizado y pastas alimenticias)"
+    if norma == norma_forti:
         st.session_state.show_selectbox = True
 
-    # Mostrar el selectbox solo si el estado está activo
     if st.session_state.show_selectbox:
         selected = st.sidebar.selectbox(
             "",
             ("Seleccione una opción...", "Azúcar", "Sal", "Harina de maíz nixtamalizado", "Pastas alimenticias"),
-            key="fortification_select",placeholder="Seleccione la sección aplicable:",
+            key="fortification_select",
+            placeholder="Seleccione la sección aplicable:",
         )
         st.session_state.selected_fortification = selected
         requisitos = requisitos_df[(requisitos_df['Normas'] == norma) & (requisitos_df['INFO'] == selected)]
     else:
-        # Para normativas que no requieren selectbox, mostrar todos los requisitos
         requisitos = requisitos_df[requisitos_df['Normas'] == norma]
 
-
-    #Colocar nombre de sub normativa
     if st.session_state.selected_fortification:
         st.markdown(f"""
         <div style="text-align: left; font-size: 18px; color:red">
@@ -314,12 +270,10 @@ if 'current_norma' in st.session_state and st.session_state['current_norma']:
 
     for index, row in requisitos.iterrows():
 
-        requisito=row['Requisito']
+        requisito = row['Requisito']
 
-        # Clave única para el índice en el estado de sesión
         indice = f'indice_{norma}_{requisito}'
         obs_key = f"obs_{norma}_{requisito}_{index}"
-
 
         if obs_key not in st.session_state:
             st.session_state[obs_key] = ""
@@ -332,10 +286,10 @@ if 'current_norma' in st.session_state and st.session_state['current_norma']:
             if requisito in observaciones_norma:
                 observacion_guardada = observaciones_norma[requisito].get('observacion', "")
         
-        especificacion=f"Sección: {row['Sección']} - {row['Requisito']}"
-        obs_dictamen=f"{row['Sección']} - {row['Requisito']}"
+        especificacion = f"Sección: {row['Sección']} - {row['Requisito']}"
+        obs_dictamen = f"{row['Sección']} - {row['Requisito']}"
 
-        if norma!="Observaciones Generales":
+        if norma != "Observaciones Generales":
             st.markdown(f"""
             <div style="text-align: left; font-size: 18px;">
                 <strong><em>{especificacion}</em></strong>
@@ -344,63 +298,49 @@ if 'current_norma' in st.session_state and st.session_state['current_norma']:
 
         observacion_guardada = st.session_state[obs_key]
 
-
-        if norma=="Observaciones Generales":
+        if norma == "Observaciones Generales":
             def on_text_area_change(key):
                 st.session_state[key] = st.session_state[f"input_{key}"]
 
-            input_key = f"input_{obs_key}"  # Clave única para el input
-            observacion=st.text_area("", value=observacion_guardada, key=input_key, on_change=on_text_area_change, args=(obs_key,))
+            input_key = f"input_{obs_key}"
+            observacion = st.text_area("", value=observacion_guardada, key=input_key, on_change=on_text_area_change, args=(obs_key,))
             agregar_observacion(norma, requisito="General", cumplimiento="No cumple", observacion=observacion)
             break
 
-        #Agrega enlaces her codex online
-        if norma=="RTCA 67.04.54:18 Alimentos y bebidas procesadas. Aditivos alimentarios" and not pd.isna(row['LINK']) and (row['Sección']=="Cuadro 2" or row['Sección']=="Cuadro 3"):
-            st.link_button("Norma Codex",row['LINK'])
+        if norma == "RTCA 67.04.54:18 Alimentos y bebidas procesadas. Aditivos alimentarios" and not pd.isna(row['LINK']) and (row['Sección'] == "Cuadro 2" or row['Sección'] == "Cuadro 3"):
+            st.link_button("Norma Codex", row['LINK'])
         else:
-            st.link_button("Ver requisito",row['LINK'])
+            st.link_button("Ver requisito", row['LINK'])
 
-         # Ajustar el orden de las opciones basado en si se seleccionó una subnormativa
         if st.session_state.selected_fortification and norma == norma_forti:
             opciones_cumple = ('No aplica', 'No cumple', 'Cumple')
         else:
             opciones_cumple = ('Cumple', 'No cumple', 'No aplica')
 
-
         cumplimiento = st.selectbox("", opciones_cumple, index=st.session_state[indice], key=f"cumple_{norma}_{index}")
-
 
         def on_text_area_change(key):
             st.session_state[key] = st.session_state[f"input_{key}"]
 
-        is_disabled=cumplimiento!="No cumple"
+        is_disabled = cumplimiento != "No cumple"
         
-        input_key = f"input_{obs_key}"  # Clave única para el input
-        observacion=st.text_area("Observaciones", value=observacion_guardada, key=input_key, on_change=on_text_area_change, args=(obs_key,), disabled=is_disabled)
+        input_key = f"input_{obs_key}"
+        observacion = st.text_area("Observaciones", value=observacion_guardada, key=input_key, on_change=on_text_area_change, args=(obs_key,), disabled=is_disabled)
         
         st.session_state[indice] = opciones_cumple.index(cumplimiento)
-       
 
-        # Si ya existía una observación previa para este requisito, eliminarla primero
         eliminar_observacion(norma, obs_dictamen)
-        
-        # Luego guardar la nueva información, ya sea Cumple, No cumple o No aplica
         agregar_observacion(norma, obs_dictamen, cumplimiento, observacion)
 
-        
-        #AGREGADO
-        if norma=="RTS 67.07.01:22 Mezcla de Crema (Nata) con Aceite o Grasa Vegetal Comestible. Especificaciones" and categoria_seleccionada=="1.4.4 Productos análogos a la nata (crema)":
+        if norma == "RTS 67.07.01:22 Mezcla de Crema (Nata) con Aceite o Grasa Vegetal Comestible. Especificaciones" and categoria_seleccionada == "1.4.4 Productos análogos a la nata (crema)":
             break
 
-
-    # Asegurándose de resetear el selectbox cuando se cambia de normativa
     if 'current_norma' in st.session_state and st.session_state['current_norma'] != norma:
         st.session_state.show_selectbox = False
         st.session_state.selected_fortification = None
 
 
 def generar_reporte():
-    # Determinar si usar la plantilla favorable o desfavorable
     tiene_no_cumple = any(
         obs_data['cumplimiento'] == "No cumple"
         for obs_list in st.session_state['observaciones_por_normativa'].values()
@@ -408,12 +348,11 @@ def generar_reporte():
     )
 
     template_path = "Dictamen_desfavorable_2.docx" if tiene_no_cumple else "Dictamen_favorable.docx"
-
     doc = Document(template_path)
 
+    observaciones_texto = ""
+
     if tiene_no_cumple:
-        # Generar texto de todas las observaciones, enumeradas por normativa
-        observaciones_texto = ""
         contador = 1
         for norma, requisitos in st.session_state['observaciones_por_normativa'].items():
             for requisito, obs in requisitos.items():
@@ -421,60 +360,48 @@ def generar_reporte():
                     if norma == "Observaciones Generales":
                         observaciones_texto += f"{contador}. Incumplimiento en: {obs['observacion']}.\n"
                     else:
-                        observaciones_texto += f"{contador}. Incumplimiento con el numeral {requisito} del Reglamento {norma} en cuanto a: {obs['observacion']}.\n"
+                        observaciones_texto += (
+                            f"{contador}. Incumplimiento con el numeral {requisito} del Reglamento {norma} "
+                            f"en cuanto a: {obs['observacion']}.\n"
+                        )
                     contador += 1
         
-        # Buscar y reemplazar el marcador de posición en el documento
         placeholder = "{Observaciones}"
         for paragraph in doc.paragraphs:
             if placeholder in paragraph.text:
                 paragraph.text = paragraph.text.replace(placeholder, observaciones_texto.strip())
         
-        # Generar texto para los requisitos que cumplen, agrupados por normativa
         cumplimientos_texto = ""
         normas_con_cumplimientos = {}
-        
-        # Primero agrupamos todos los requisitos que cumplen por normativa
         for norma, requisitos in st.session_state['observaciones_por_normativa'].items():
             if norma != "Observaciones Generales":
                 for requisito, obs in requisitos.items():
                     if obs['cumplimiento'] == "Cumple":
-                        if norma not in normas_con_cumplimientos:
-                            normas_con_cumplimientos[norma] = []
-                        normas_con_cumplimientos[norma].append(requisito)
-        
-        # Luego generamos el texto con viñetas
+                        normas_con_cumplimientos.setdefault(norma, []).append(requisito)
+
         for norma, requisitos_lista in normas_con_cumplimientos.items():
             cumplimientos_texto += f"• {norma}\n"
             for requisito in requisitos_lista:
                 cumplimientos_texto += f"  - {requisito}\n"
         
-        # Reemplazar el marcador para cumplimientos
         placeholder_cumplimientos = "{Cumplimientos}"
         for paragraph in doc.paragraphs:
             if placeholder_cumplimientos in paragraph.text:
                 paragraph.text = paragraph.text.replace(placeholder_cumplimientos, cumplimientos_texto.strip())
         
-        # Generar texto para los requisitos que no aplican, agrupados por normativa
         inaplicables_texto = ""
         normas_con_inaplicables = {}
-        
-        # Primero agrupamos todos los requisitos que no aplican por normativa
         for norma, requisitos in st.session_state['observaciones_por_normativa'].items():
             if norma != "Observaciones Generales":
                 for requisito, obs in requisitos.items():
                     if obs['cumplimiento'] == "No aplica":
-                        if norma not in normas_con_inaplicables:
-                            normas_con_inaplicables[norma] = []
-                        normas_con_inaplicables[norma].append(requisito)
-        
-        # Luego generamos el texto con viñetas
+                        normas_con_inaplicables.setdefault(norma, []).append(requisito)
+
         for norma, requisitos_lista in normas_con_inaplicables.items():
             inaplicables_texto += f"• {norma}\n"
             for requisito in requisitos_lista:
                 inaplicables_texto += f"   - {requisito}\n"
 
-        # Reemplazar el marcador para requisitos no aplicables
         placeholder_inaplicables = "{Inaplicables}"
         for paragraph in doc.paragraphs:
             if placeholder_inaplicables in paragraph.text:
@@ -483,14 +410,43 @@ def generar_reporte():
     output = io.BytesIO()
     doc.save(output)
     output.seek(0)
-    del st.session_state['observaciones_por_normativa']
-    return output
+    reporte_bytes = output.getvalue()
+
+    # --- NUEVO: guardar estado para dictamen ---
+    st.session_state["reporte_docx_bytes"] = reporte_bytes
+    st.session_state["reporte_generado"] = True
+    st.session_state["reporte_descargado"] = False
+    st.session_state["reporte_tiene_no_cumple"] = tiene_no_cumple
+    st.session_state["dictamen_observaciones"] = observaciones_texto.strip() if tiene_no_cumple else ""
+
+    return reporte_bytes
 
 
-# Botón para generar y descargar el informe
-if st.sidebar.button('Generar reporte',type='primary'):
-    output = generar_reporte()
-    st.sidebar.download_button("Descargar",
-                               output,
-                               "Reporte.docx", 
-                               "application/vnd.openxmlformats-officedocument.wordprocessingml.document",type='primary')
+def _marcar_descarga_reporte():
+    st.session_state["reporte_descargado"] = True
+
+
+# 1) Generar reporte
+if st.sidebar.button('Generar reporte', type='primary'):
+    generar_reporte()
+
+# 2) Descargar (visible si ya hay bytes)
+if st.session_state.get("reporte_docx_bytes"):
+    st.sidebar.download_button(
+        "Descargar",
+        data=st.session_state["reporte_docx_bytes"],
+        file_name="Reporte.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        type='primary',
+        on_click=_marcar_descarga_reporte,
+        key="download_reporte",
+    )
+
+# 3) Nuevo paso: Generar dictamen (solo si hubo "No cumple")
+if st.session_state.get("reporte_descargado", False):
+    if st.session_state.get("reporte_tiene_no_cumple", False):
+        st.sidebar.info("Se detectaron incumplimientos. Puedes emitir el dictamen.")
+        if st.sidebar.button("Generar dictamen", type="secondary"):
+            st.switch_page("pages/Dictamen_no_conformidad.py")
+    else:
+        st.sidebar.success("Todos los requisitos cumplen. (Dictamen no habilitado por ahora).")
