@@ -3,15 +3,58 @@ import pandas as pd
 import streamlit as st
 from datetime import date
 from docx import Document
+import unicodedata
+import re
 
 RUTA_EXCEL = "Matriz.xlsx"
 PLANTILLA_DICTAMEN = "Dictamen de no conformidad.docx"
 
+import unicodedata
+import re
+
+def _norm(s: str) -> str:
+    # lower + strip
+    s = str(s).strip().lower()
+    # quitar tildes/acentos
+    s = "".join(
+        c for c in unicodedata.normalize("NFD", s)
+        if unicodedata.category(c) != "Mn"
+    )
+    # convertir separadores a espacio y colapsar
+    s = s.replace("_", " ").replace("-", " ")
+    s = re.sub(r"\s+", " ", s)
+    return s
 
 def _load_catalogos():
     df = pd.read_excel(RUTA_EXCEL, sheet_name="Catalogos", keep_default_na=False)
 
-    cols = {c.strip().lower(): c for c in df.columns}
+    # mapa normalizado -> nombre real
+    colmap = {_norm(c): c for c in df.columns}
+
+    def pick(*cands):
+        for c in cands:
+            c = _norm(c)
+            if c in colmap:
+                return colmap[c]
+        return None
+
+    # Acepta varias formas de encabezado
+    col_titulo = pick("titulo", "título")
+    col_nombre = pick("nombre analista", "analista", "nombre")
+    col_cargo  = pick("cargo", "puesto")
+
+    if not col_titulo or not col_nombre or not col_cargo:
+        st.error(
+            "En la hoja 'Catalogos' faltan columnas esperadas. "
+            f"Detectadas: {list(df.columns)}"
+        )
+        st.stop()
+
+    titulos = [x for x in df[col_titulo].astype(str).tolist() if str(x).strip()]
+    nombres = [x for x in df[col_nombre].astype(str).tolist() if str(x).strip()]
+    cargos  = [x for x in df[col_cargo].astype(str).tolist() if str(x).strip()]
+
+    return titulos, nombres, cargos
 
     def pick(*cands):
         for c in cands:
