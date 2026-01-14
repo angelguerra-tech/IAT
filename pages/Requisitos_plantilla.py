@@ -421,6 +421,27 @@ def generar_reporte():
 
     return reporte_bytes
 
+def construir_cumplimientos_para_dictamen():
+    EXCLUIR = {
+        "RTCA 67.01.31:20 Alimentos procesados.Procedimiento para el otorgamiento, renovación y modificación del registro sanitario",
+        "RTCA 67.04.50:17 Alimentos. Criterios microbiológicos para la inocuidad de alimentos",
+    }
+
+    normas = []
+    for norma, reqs in st.session_state.get("observaciones_por_normativa", {}).items():
+        if norma == "Observaciones Generales":
+            continue
+        norma_limpia = str(norma).strip()
+        if norma_limpia in EXCLUIR:
+            continue
+
+        # Solo incluir si NO tiene "No cumple" en esa norma
+        if all(obs.get("cumplimiento") != "No cumple" for obs in reqs.values()):
+            normas.append(norma_limpia)
+
+    # Texto tipo viñetas para {Cumplimientos}
+    return "\n".join([f"• {n}" for n in normas])
+
 
 def _marcar_descarga_reporte():
     st.session_state["reporte_descargado"] = True
