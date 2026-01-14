@@ -165,23 +165,6 @@ import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 PLANTILLA_DICTAMEN = BASE_DIR / "Dictamen_no_conformidad.docx"
-
-st.write("CWD:", os.getcwd())
-st.write("__file__:", __file__)
-st.write("BASE_DIR:", str(BASE_DIR))
-st.write("PLANTILLA_DICTAMEN:", str(PLANTILLA_DICTAMEN))
-st.write("Existe plantilla:", PLANTILLA_DICTAMEN.exists())
-
-# Lista lo que hay en la raíz del proyecto (para ver el nombre real)
-try:
-    st.write("Archivos en BASE_DIR:", sorted([p.name for p in BASE_DIR.iterdir()]))
-except Exception as e:
-    st.write("No pude listar BASE_DIR:", e)
-
-# Si existe, muestra tamaño (0 bytes = subida mala)
-if PLANTILLA_DICTAMEN.exists():
-    st.write("Tamaño (bytes):", PLANTILLA_DICTAMEN.stat().st_size)
-
     
     doc = Document(str(PLANTILLA_DICTAMEN))
     _replace_everywhere(doc, replacements)
