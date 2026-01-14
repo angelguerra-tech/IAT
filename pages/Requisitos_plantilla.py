@@ -19,9 +19,10 @@ if "reporte_tiene_no_cumple" not in st.session_state:
     st.session_state["reporte_tiene_no_cumple"] = False
 if "dictamen_observaciones" not in st.session_state:
     st.session_state["dictamen_observaciones"] = ""
-# --- NUEVO: para dictamen de conformidad ---
 if "dictamen_cumplimientos" not in st.session_state:
     st.session_state["dictamen_cumplimientos"] = ""
+if "normas_aplicables" not in st.session_state:
+    st.session_state["normas_aplicables"] = []
 
 # Funciones para manejar observaciones
 def agregar_observacion(norma, requisito, cumplimiento, observacion):
@@ -194,22 +195,26 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Reseteo recomendado al cambiar de categoría (evita arrastre del dictamen/reporte) ---
+# Si cambia categoría, reiniciar algunas cosas mínimas
 if st.session_state['categoria_seleccionada'] != st.session_state['last_categoria_seleccionada']:
     st.session_state['current_norma'] = None
     st.session_state['last_categoria_seleccionada'] = st.session_state['categoria_seleccionada']
-
-    st.session_state["reporte_docx_bytes"] = None
     st.session_state["reporte_generado"] = False
     st.session_state["reporte_descargado"] = False
+    st.session_state["reporte_docx_bytes"] = None
     st.session_state["reporte_tiene_no_cumple"] = False
     st.session_state["dictamen_observaciones"] = ""
     st.session_state["dictamen_cumplimientos"] = ""
+    st.session_state["normas_aplicables"] = []
 
 
 if categoria_seleccionada:
     normas_aplicables = categorias_df[categorias_df['Subcategoria'] == categoria_seleccionada].iloc[0, 8:].dropna().tolist()
+else:
+    normas_aplicables = []
 
+# --- NUEVO: guardar SIEMPRE el listado aplicable (panel izquierdo) ---
+st.session_state["normas_aplicables"] = [str(n).strip() for n in normas_aplicables if str(n).strip()]
 
 if 'current_norma' not in st.session_state:
     st.session_state['current_norma'] = None
@@ -353,30 +358,24 @@ if 'current_norma' in st.session_state and st.session_state['current_norma']:
 
 def construir_cumplimientos_para_dictamen():
     """
-    Construye el listado de REGLAMENTOS cumplidos para el dictamen de conformidad,
-    excluyendo SIEMPRE los RTCA indicados (robusto a variaciones de texto).
+    Construye el texto para {Cumplimientos} usando el listado del panel izquierdo
+    (normas aplicables), excluyendo Observaciones Generales y 2 RTCA específicos.
     """
-    EXCLUIR_CONTIENE = {
-        "RTCA 67.01.31:20",
-        "RTCA 67.04.50:17",
+    EXCLUIR = {
+        "RTCA 67.01.31:20 Alimentos procesados.Procedimiento para el otorgamiento, renovación y modificación del registro sanitario",
+        "RTCA 67.04.50:17 Alimentos. Criterios microbiológicos para la inocuidad de alimentos",
+        "Observaciones Generales",
     }
 
     normas = []
-    for norma, reqs in st.session_state.get("observaciones_por_normativa", {}).items():
-        if norma == "Observaciones Generales":
+    for n in st.session_state.get("normas_aplicables", []):
+        n_limpia = str(n).strip()
+        if not n_limpia or n_limpia in EXCLUIR:
             continue
+        normas.append(n_limpia)
 
-        norma_limpia = str(norma).strip()
-
-        # Excluir por coincidencia del código RTCA (evita fallos por texto distinto)
-        if any(x in norma_limpia for x in EXCLUIR_CONTIENE):
-            continue
-
-        # Incluir solo si esa norma NO tiene "No cumple"
-        if all(obs.get("cumplimiento") != "No cumple" for obs in reqs.values()):
-            normas.append(norma_limpia)
-
-    return "\n".join([f"• {n}" for n in normas])
+    # Numerado como pediste (1., 2., 3....)
+    return "\n".join([f"{i}. {n}" for i, n in enumerate(normas, start=1)])
 
 
 def generar_reporte():
@@ -451,18 +450,18 @@ def generar_reporte():
     output.seek(0)
     reporte_bytes = output.getvalue()
 
-    # --- Guardar estado para dictámenes ---
+    # --- NUEVO: guardar estado para dictamen ---
     st.session_state["reporte_docx_bytes"] = reporte_bytes
     st.session_state["reporte_generado"] = True
     st.session_state["reporte_descargado"] = False
     st.session_state["reporte_tiene_no_cumple"] = tiene_no_cumple
     st.session_state["dictamen_observaciones"] = observaciones_texto.strip() if tiene_no_cumple else ""
 
-    # --- NUEVO: preparar cumplimientos para dictamen de conformidad ---
+    # --- NUEVO: SI ES CONFORMIDAD, preparar listado para {Cumplimientos} ---
     if not tiene_no_cumple:
         st.session_state["dictamen_cumplimientos"] = construir_cumplimientos_para_dictamen()
     else:
-        st.session_state["dictamen_cumplimientos"] = ""
+        st.session_state["dictamen_cumplimientos"] = ""  # no aplica en no conformidad
 
     return reporte_bytes
 
@@ -487,14 +486,15 @@ if st.session_state.get("reporte_docx_bytes"):
         key="download_reporte",
     )
 
-# 3) Generar dictamen según escenario (después de descargar)
+# 3) Nuevo paso: Generar dictamen
 if st.session_state.get("reporte_descargado", False):
     if st.session_state.get("reporte_tiene_no_cumple", False):
         st.sidebar.info("Se detectaron incumplimientos. Puedes emitir el dictamen.")
-        if st.sidebar.button("Generar dictamen", type="secondary", key="btn_dictamen_no_conf"):
+        if st.sidebar.button("Generar dictamen", type="secondary"):
             st.switch_page("pages/01_Dictamen_no_conformidad.py")
     else:
         st.sidebar.success("Se detectó cumplimiento completo de los requisitos.")
-        if st.sidebar.button("Generar dictamen", type="secondary", key="btn_dictamen_conf"):
+        if st.sidebar.button("Generar dictamen", type="secondary"):
             st.switch_page("pages/02_Dictamen_conformidad.py")
+
 
