@@ -10,7 +10,7 @@ from datetime import date
 BASE_DIR = Path(__file__).resolve().parents[1]  # sube de /pages a la raíz del proyecto
 
 RUTA_EXCEL = BASE_DIR / "Matriz.xlsx"
-PLANTILLA_DICTAMEN = BASE_DIR / "Dictamen de no conformidad.docx"
+PLANTILLA_DICTAMEN = BASE_DIR / "Dictamen_no_conformidad.docx"
 
 import unicodedata
 import re
