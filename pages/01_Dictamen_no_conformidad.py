@@ -164,7 +164,7 @@ import os
 import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-PLANTILLA_DICTAMEN = BASE_DIR / "Dictamen de no conformidad.docx"
+PLANTILLA_DICTAMEN = BASE_DIR / "Dictamen_no_conformidad.docx"
 
 st.write("CWD:", os.getcwd())
 st.write("__file__:", __file__)
