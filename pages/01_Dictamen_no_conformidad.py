@@ -1,18 +1,16 @@
-import io
-import pandas as pd
-import streamlit as st
-from datetime import date
-from docx import Document
-import unicodedata
-import re
 from pathlib import Path
-import os
+from docx import Document
+import streamlit as st
+import pandas as pd
+import io
+import re
+import unicodedata
+from datetime import date
 
 BASE_DIR = Path(__file__).resolve().parents[1]  # sube de /pages a la raíz del proyecto
-PLANTILLA_DICTAMEN = BASE_DIR / "Dictamen de no conformidad.docx"
 
-RUTA_EXCEL = "Matriz.xlsx"
-PLANTILLA_DICTAMEN = "Dictamen de no conformidad.docx"
+RUTA_EXCEL = BASE_DIR / "Matriz.xlsx"
+PLANTILLA_DICTAMEN = BASE_DIR / "Dictamen de no conformidad.docx"
 
 import unicodedata
 import re
